@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "name": "com.mycoughdrop.coughdrop.misc",
+  "cordova_name": "CoughDropMisc",
+  "description": "Miscellaneous Helpers for CoughDrop-Cordova",
+  "license": "MIT",
+  "repo": "https://github.com/g-w/cordova-volume/tree/master",
+  "keywords": [
+    "cordova"
+  ],
+  "platforms": [
+    "ios",
+    "android"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.0.0"
+    }
+  ]
+}
