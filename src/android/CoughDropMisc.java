@@ -8,6 +8,8 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ApplicationInfo;
 import com.mycoughdrop.coughdrop.R;
 
 import org.apache.cordova.CordovaPlugin;
@@ -27,7 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Text-to-speech using class libraries rather than speechSynthesis
+ * Helper libraries used by CoughDrop mobile app
 **/
 
 public class CoughDropMisc extends CordovaPlugin implements SensorEventListener {
@@ -52,6 +54,15 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
         callbackContext.success(message);
       }
       return true;
+    } else if(action.equals("listApps")) {
+      ArrayList<String> packages = new ArrayList<String>();
+      PackageManager mgr = cordova.getActivity().getApplicationContext().getPackageManager();
+      List<ApplicationInfo> apps = mgr.getInstalledApplications(0);
+      for(ApplicationInfo info : apps) {
+        packages.add(info.packageName.toString());
+      }
+      JSONArray list = new JSONArray(packages);
+      callbackContext.success(list);
     }
     return false;
   }

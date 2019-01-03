@@ -1,5 +1,5 @@
 {
-  "version": "0.0.1",
+  "version": "0.0.2",
   "name": "com.mycoughdrop.coughdrop.misc",
   "cordova_name": "CoughDropMisc",
   "description": "Miscellaneous Helpers for CoughDrop-Cordova",
