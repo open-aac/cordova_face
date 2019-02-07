@@ -9,6 +9,9 @@
 #import <Foundation/Foundation.h>
 #import <Cordova/CDV.h>
 #import <Cordova/CDVPlugin.h>
+#import "AudioTogglePlugin.h"
+#import <AudioToolbox/AudioToolbox.h>
+#import <AVFoundation/AVFoundation.h>
 
 @interface CoughDropMisc : CDVPlugin
 @end
@@ -37,6 +40,62 @@
     NSMutableDictionary* result = [self recursivePathsForResourcesOfType:nil inDirectory:dir];
     
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
+    
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void)setAudioMode:(CDVInvokedUrlCommand *)command
+{
+    NSString* mode = [command.arguments objectAtIndex:0];
+    NSError* error;
+    BOOL success;
+    CDVPluginResult* pluginResult;
+
+    AVAudioSession* session = [AVAudioSession sharedInstance];
+
+    // make sure the AVAudioSession is properly configured
+    [session setActive: YES error: nil];
+    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:nil];
+
+    if (mode != nil) {
+        if ([mode isEqualToString:@"speaker"]) {
+            success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&error];
+        } else {
+            success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:&error];
+        }
+        if (success) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"error setting audio target"];
+        }
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"'target' was null"];
+    }
+
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void)getAudioDevices:(CDVInvokedUrlCommand*)command
+{
+    
+    // just testing with reading in values from a hash object and returning a hash result
+    
+    NSMutableArray *devices = [[NSMutableArray alloc] init];
+
+    // add speaker
+    [devices addObject:@"speaker"];
+
+    AVAudioSessionRouteDescription* route = [[AVAudioSession sharedInstance] currentRoute];
+    for (AVAudioSessionPortDescription* desc in [route outputs]) {
+        NSString* portType = [desc portType];
+        if ([portType isEqualToString:AVAudioSessionPortHeadphones]) {
+            [devices addObject:@"headset"];
+        } else if ([portType isEqualToString:AVAudioSessionPortBluetoothA2DP] || [portType isEqualToString:AVAudioSessionPortBluetoothLE]) {
+            [devices addObject:@"bluetooth"];
+        }
+    }
+
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:devices];
     
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }

@@ -11,6 +11,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import com.mycoughdrop.coughdrop.R;
+import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
@@ -63,8 +65,84 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
       }
       JSONArray list = new JSONArray(packages);
       callbackContext.success(list);
+      return true;
+    } else if(action.equals("getAudioDevices")) {
+      JSONArray list = new JSONArray(getAudioDevices());
+      callbackContext.success(list);
+    } else if(action.equals("setAudioMode")) {
+      String mode = args.getString(0);
+      return setAudioMode(mode, callbackContext);
     }
     return false;
+  }
+
+  private ArrayList<String> getAudioDevices() {
+    Context context = webView.getContext();
+    AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);    
+    
+    ArrayList<String> devices = new ArrayList<String>();
+    AudioDeviceInfo[] list = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+    for(AudioDeviceInfo device : list) {
+      int type = device.getType();
+      if(type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) {
+        devices.add("bluetooth");
+      } else if(type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) {
+        devices.add("earpiece");
+      } else if(type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
+        devices.add("speaker");
+      } else if(type == 0x00000017 || // AudioDeviceInfo.TYPE_HEARING_AID
+            type == AudioDeviceInfo.TYPE_USB_HEADSET || 
+            type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || 
+            type == AudioDeviceInfo.TYPE_WIRED_HEADSET) {
+        devices.add("headset");
+      }
+    }
+    return devices;
+  }
+
+  private boolean setAudioMode(String mode, CallbackContext callbackContext) throws JSONException {
+    Context context = webView.getContext();
+    AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);    
+    int previous_mode = audioManager.getMode();
+    int new_mode = previous_mode;
+    boolean previous_speaker = audioManager.isSpeakerphoneOn();
+    boolean new_speaker = previous_speaker;
+    if(mode.equals("bluetooth")) {
+      new_mode = AudioManager.MODE_NORMAL;
+      new_speaker = false;
+    } else if(mode.equals("earpiece")) {
+      new_mode = AudioManager.MODE_IN_COMMUNICATION;
+      new_speaker = false;
+    } else if(mode.equals("speaker")) {
+      new_mode = AudioManager.MODE_IN_COMMUNICATION;
+      new_speaker = true;
+    } else if(mode.equals("headset")) {
+      new_mode = AudioManager.MODE_NORMAL;
+      new_speaker = false;
+    } else if(mode.equals("default")) {
+      new_mode = AudioManager.MODE_NORMAL;
+      new_speaker = false;
+    }
+    int delay = 0;
+    if(previous_mode != new_mode) {
+      if(previous_mode != AudioManager.MODE_IN_COMMUNICATION && new_mode == AudioManager.MODE_IN_COMMUNICATION) {
+        delay = 2000;
+      }
+      audioManager.setMode(new_mode);
+    }
+    if(previous_speaker != new_speaker) {
+      if(!previous_speaker && new_speaker) {
+        delay = 2000;
+      }
+      audioManager.setSpeakerphoneOn(new_speaker);
+    }
+    // set delay to 2000 mode or speakerphone was changed
+    // res = {mode: mode, delay: 0};
+    JSONObject result = new JSONObject();
+    result.put("mode", mode);
+    result.put("delay", delay);
+    callbackContext.success(result);
+    return true;
   }
   
   private JSONObject listFiles(String dir) throws JSONException {
