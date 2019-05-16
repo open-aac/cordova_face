@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <Cordova/CDV.h>
 #import <Cordova/CDVPlugin.h>
-#import "AudioTogglePlugin.h"
+// #import "AudioTogglePlugin.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import <AVFoundation/AVFoundation.h>
 
@@ -53,18 +53,42 @@
 
     AVAudioSession* session = [AVAudioSession sharedInstance];
 
+    NSMutableArray *devices = [[NSMutableArray alloc] init];
+    NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+
     // make sure the AVAudioSession is properly configured
     [session setActive: YES error: nil];
-    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:nil];
 
     if (mode != nil) {
-        if ([mode isEqualToString:@"speaker"]) {
-            success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&error];
-        } else {
+        BOOL bluetooth = false;
+        [session setCategory:AVAudioSessionCategoryPlayback error:nil];
+        for(AVAudioSessionPortDescription* desc in [session.currentRoute outputs]) {
+            [devices addObject:desc.portType];
+            if ([desc.portType isEqualToString:AVAudioSessionPortBluetoothA2DP] || [desc.portType isEqualToString:AVAudioSessionPortBluetoothLE] || [desc.portType isEqualToString:AVAudioSessionPortBluetoothHFP]) {
+                bluetooth = true;
+            }
+        }
+        [result setObject:devices forKey:@"devices"];
+        [result setObject:mode forKey:@"mode"];
+
+        if(bluetooth && ([mode isEqualToString:@"bluetooth"] || [mode isEqualToString:@"default"])) {
+            [session setCategory:AVAudioSessionCategoryPlayback error:nil];
             success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:&error];
+            NSNumber *newNum = [NSNumber numberWithInt:500];
+            [result setObject:newNum forKey:@"delay"];
+            [result setObject:@"set for bluetooth" forKey:@"status"];
+        } else {
+            [session setCategory:AVAudioSessionCategoryPlayAndRecord error:nil];
+            if ([mode isEqualToString:@"speaker"]) {
+                success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&error];
+                [result setObject:@"set for speaker" forKey:@"status"];
+            } else {
+                success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:&error];
+                [result setObject:@"set for default" forKey:@"status"];
+            }
         }
         if (success) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK  messageAsDictionary:result];
         } else {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"error setting audio target"];
         }
@@ -84,16 +108,23 @@
 
     // add speaker
     [devices addObject:@"speaker"];
-
-    AVAudioSessionRouteDescription* route = [[AVAudioSession sharedInstance] currentRoute];
+    AVAudioSession* session = [AVAudioSession sharedInstance];
+    AVAudioSessionCategory cat = [session category];
+    [session setCategory:AVAudioSessionCategoryPlayback error:nil];
+    AVAudioSessionRouteDescription* route = [session currentRoute];
     for (AVAudioSessionPortDescription* desc in [route outputs]) {
         NSString* portType = [desc portType];
         if ([portType isEqualToString:AVAudioSessionPortHeadphones]) {
             [devices addObject:@"headset"];
-        } else if ([portType isEqualToString:AVAudioSessionPortBluetoothA2DP] || [portType isEqualToString:AVAudioSessionPortBluetoothLE]) {
+        } else if ([portType isEqualToString:AVAudioSessionPortBluetoothA2DP] || [portType isEqualToString:AVAudioSessionPortBluetoothLE] || [portType isEqualToString:AVAudioSessionPortBluetoothHFP]) {
             [devices addObject:@"bluetooth"];
+        } else if ([portType isEqualToString:AVAudioSessionPortBuiltInSpeaker]) {
+            // already a given
+        } else {
+            [devices addObject:desc.portType];
         }
     }
+    [session setCategory:cat error:nil];
 
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:devices];
     

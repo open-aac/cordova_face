@@ -1,10 +1,10 @@
 {
-  "version": "0.0.3",
+  "version": "0.0.4",
   "name": "com.mycoughdrop.coughdrop.misc",
   "cordova_name": "CoughDropMisc",
   "description": "Miscellaneous Helpers for CoughDrop-Cordova",
   "license": "MIT",
-  "repo": "https://github.com/g-w/cordova-volume/tree/master",
+  "repo": "https://github.com/coughdrop/coughdrop_cordova_misc",
   "keywords": [
     "cordova"
   ],
