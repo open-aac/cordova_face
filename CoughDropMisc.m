@@ -53,6 +53,7 @@
     [result setObject:bundleId forKey:@"bundle_id"];
     [result setObject:version forKey:@"version"];
 
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK  messageAsDictionary:result];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
