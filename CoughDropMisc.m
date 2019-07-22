@@ -44,6 +44,18 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void)bundleId:(CDVInvokedUrlCommand *)command
+{
+    NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+    NSString *bundleId = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIdentifier"];
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+
+    [result setObject:bundleId forKey:@"bundle_id"];
+    [result setObject:version forKey:@"version"];
+
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 - (void)setAudioMode:(CDVInvokedUrlCommand *)command
 {
     NSString* mode = [command.arguments objectAtIndex:0];

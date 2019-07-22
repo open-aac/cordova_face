@@ -72,6 +72,8 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
     } else if(action.equals("setAudioMode")) {
       String mode = args.getString(0);
       return setAudioMode(mode, callbackContext);
+    } else if(action.equals('bundleId')) {
+      return bundleInfo(callbackContext);
     }
     return false;
   }
@@ -100,6 +102,18 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
     return devices;
   }
 
+  private boolean bundleInfo(CallbackContext callbackContext) throws JSONException {
+    JSONObject result = new JSONObject();
+    result.put("bundle_id", this.cordova.getActivity().getApplicationContext().getPackageName());
+    try {
+      PackageInfo pInfo = context.getPackageManager().getPackageInfo(result.get('bundle_id'), 0);
+      String version = pInfo.versionName;
+      result.put('version', version);
+    } catch (PackageManager.NameNotFoundException e) { }
+    callbackContext.success(result);
+    return true;
+  }
+  
   private boolean setAudioMode(String mode, CallbackContext callbackContext) throws JSONException {
     Context context = webView.getContext();
     AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);    
