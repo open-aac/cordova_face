@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import com.mycoughdrop.coughdrop.R;
 import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
@@ -72,7 +73,7 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
     } else if(action.equals("setAudioMode")) {
       String mode = args.getString(0);
       return setAudioMode(mode, callbackContext);
-    } else if(action.equals('bundleId')) {
+    } else if(action.equals("bundleId")) {
       return bundleInfo(callbackContext);
     }
     return false;
@@ -106,9 +107,9 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
     JSONObject result = new JSONObject();
     result.put("bundle_id", this.cordova.getActivity().getApplicationContext().getPackageName());
     try {
-      PackageInfo pInfo = context.getPackageManager().getPackageInfo(result.get('bundle_id'), 0);
+      PackageInfo pInfo =  this.cordova.getActivity().getApplicationContext().getPackageManager().getPackageInfo(this.cordova.getActivity().getPackageName(), 0);
       String version = pInfo.versionName;
-      result.put('version', version);
+      result.put("version", version);
     } catch (PackageManager.NameNotFoundException e) { }
     callbackContext.success(result);
     return true;
