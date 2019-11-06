@@ -159,6 +159,20 @@ public class CoughDropMisc extends CordovaPlugin implements SensorEventListener 
     callbackContext.success(result);
     return true;
   }
+
+  // private boolean getScreenDimensions(CallbackContext callbackContext) throws JSONException {
+  //   DisplayMetrics dm = cordova.getActivity().getResources().getDisplayMetrics();
+
+  //   double density = dm.density * 160;
+  //   double x = Math.pow(dm.widthPixels / density, 2);
+  //   double y = Math.pow(dm.heightPixels / density, 2);
+  //   JSONObject result = new JSONObject();
+  //   result.put("width", x);
+  //   result.put("height", y);
+  //   callbackContext.success(result);
+
+  //   return true;
+  // }
   
   private JSONObject listFiles(String dir) throws JSONException {
     JSONObject result = new JSONObject();
