@@ -1,10 +1,10 @@
 {
   "version": "0.0.5",
-  "name": "com.mycoughdrop.coughdrop.misc",
-  "cordova_name": "CoughDropMisc",
-  "description": "Miscellaneous Helpers for CoughDrop-Cordova",
+  "name": "com.mycoughdrop.coughdrop.face",
+  "cordova_name": "CoughDropFace",
+  "description": "Face/Head Tracking for Cordova apps",
   "license": "MIT",
-  "repo": "https://github.com/coughdrop/coughdrop_cordova_misc",
+  "repo": "https://github.com/coughdrop/coughdrop_cordova_face",
   "keywords": [
     "cordova"
   ],
