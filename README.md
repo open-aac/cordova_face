@@ -1,7 +1,35 @@
 # Cordova Face/Head Tracking
-Face/Head Tracking for Cordova
+Face/Head Tracking for Cordova. Using ARKit and ARCore, we
+can leverage device hardware to add support for tracking
+head position, facial expressions, and possibly eye gaze
+location.
 
+This Cordova head tracking plugin isn't built to support
+facial overlays/masks that are popular for video chat, this
+plugin is focused on extracting raw head/face information
+to be used, for example, by accessibility apps for head
+tracking and custom screen activation. There could be
+other uses as well, but that is our focus.
+
+## Installation
 ```
+cordova plugin add https://github.com/CoughDrop/cordova_face
+```
+
+Look at src/android/MainActivity for an example replacement
+for MainActivity.java in your app. There are other plugins
+that do this, I didn't make up the idea, and they work fine
+in my tests.
+
+This plugin needs to add
+a custom fragment in order to support face tracking (open
+to other solutions if you have them!), hence the need to 
+change the basic implementation.
+
+## Usage
+
+### Check Status
+```javacsript
 cordova.exec(function(res) { 
   if(res && res.supported) {
     console.log("Face Tracking/TrueDepth is supported!");
@@ -20,7 +48,8 @@ cordova.exec(function(res) {
 }, 'CoughDropFace', 'status', []);
 ```
 
-```
+### Listen for Updates
+```javacsript
 cordova.exec(function(res) { 
   console.log("LISTEN EVENT", res);
   if(res.action == "ready") {
@@ -41,19 +70,27 @@ cordova.exec(function(res) {
   }
 }, function(err) { 
   console.error('ERROR LISTENING', err); 
-}, 'CoughDropFace', 'listen', [{bacon: "asdf", gaze: true, eyes: true, head: false, layout: layout}]);
+}, 'CoughDropFace', 'listen', [{gaze: true, eyes: true, head: false, layout: layout}]);
 ```
 
-```
+Note that for head-pointing and gaze tracking, screen location
+data is <b>not</b> in pixels, but in inches from the camera. It
+will be up to you to use ppi/dpi, devicePixelRatio and known
+camera location to convert to screen coordinates.
+
+### Stop Listening
+```javacsript
 cordova.exec(function(res) { 
   console.log("STOPPED", res);
 }, function(err) { 
   console.error('ERROR STOPPING', err); 
 }, 'CoughDropFace', 'stop_listening', []);
 ```
-s
+
 ## TODO
 - Add js interface
+- Implement https://github.com/ReallySmallSoftware/cordova-plugin-android-fragmentactivity/blob/master/scripts/android/afterPluginInstall.js, but include the original file in a comment so nothing is lost
+- Auto-convert distance in inches to screen location
 
 ## License
 MIT License
