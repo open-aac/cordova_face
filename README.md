@@ -29,7 +29,7 @@ change the basic implementation.
 ## Usage
 
 ### Check Status
-```javacsript
+```js
 cordova.exec(function(res) { 
   if(res && res.supported) {
     console.log("Face Tracking/TrueDepth is supported!");
@@ -49,7 +49,7 @@ cordova.exec(function(res) {
 ```
 
 ### Listen for Updates
-```javacsript
+```js
 cordova.exec(function(res) { 
   console.log("LISTEN EVENT", res);
   if(res.action == "ready") {
@@ -79,7 +79,7 @@ will be up to you to use ppi/dpi, devicePixelRatio and known
 camera location to convert to screen coordinates.
 
 ### Stop Listening
-```javacsript
+```js
 cordova.exec(function(res) { 
   console.log("STOPPED", res);
 }, function(err) { 

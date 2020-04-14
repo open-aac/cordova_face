@@ -3,6 +3,7 @@ package com.mycoughdrop.coughdrop;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
+import android.os.Handler;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.TrackingState;
@@ -53,8 +54,11 @@ public class CoughDropFace extends CordovaPlugin  {
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
     if(action.equals("status")) {
       return face_status(callbackContext);
-    } else if(action.equals("face_start")) {
-      return face_start(callbackContext);
+    } else if(action.equals("listen")) {
+      return face_start(callbackContext, 0);
+      // TODO: process arguments, only send head tracking/expressions if specified
+    } else if(action.equals("stop_listening")) {
+      return face_stop(callbackContext);
     }
     return false;
   }
@@ -78,7 +82,7 @@ public class CoughDropFace extends CordovaPlugin  {
   }
 
 
-  private double vert_distance(FloatBuffer buff, int i, int j) {
+  private double vertex_distance(FloatBuffer buff, int i, int j) {
     float ax = buff.get(i * 3), ay = buff.get((i * 3) + 1), az = buff.get((i * 3) + 2);
     float bx = buff.get(j * 3), by = buff.get((j * 3) + 1), bz = buff.get((j * 3) + 2);
     // Don't bother with square roots
@@ -106,6 +110,17 @@ public class CoughDropFace extends CordovaPlugin  {
       history.offer(current);
     }
     return past_threshold;
+  }
+
+  private double check_diff(Queue<Double> ahistory, double acurrent, Queue<Double> bhistory, double bcurrent) {
+    if(ahistory.size() < 5 && bhistory.size() < 5) {
+      return 0;
+    }
+    Object[] apast = ahistory.toArray();
+    double aavg = (((Double) apast[0]).doubleValue() + ((Double) apast[1]).doubleValue() + ((Double) apast[2]).doubleValue()) / 3.0;
+    Object[] bpast = bhistory.toArray();
+    double bavg = (((Double) bpast[0]).doubleValue() + ((Double) bpast[1]).doubleValue() + ((Double) bpast[2]).doubleValue()) / 3.0;
+    return Math.abs((acurrent - aavg) - (bcurrent - bavg));
   }
 
   private double[] euler_angles(AugmentedFace face) {
@@ -159,32 +174,46 @@ public class CoughDropFace extends CordovaPlugin  {
   private int head_tally = 0, same_head_tally = 0;
   private String last_action = "none";
   private int action_count = 0;
-  private boolean face_start(CallbackContext callbackContext) throws JSONException {
+  private boolean face_start(CallbackContext callbackContext, int attempt) throws JSONException {
     JSONObject result = new JSONObject();
 
     ArFragment currentFragment = ((MainActivity) cordova.getActivity()).assertArFragment();
     ArSceneView sceneView = currentFragment.getArSceneView();
     start_bank = -1;
     start_attitude = -1;
-    if(sceneView == null) {
+    if(attempt > 20) {
       result.put("error", true);
-      result.put("ready", false);
+      result.put("intialized", false);
       callbackContext.error(result);
+      return true;
+    }
+    int attempts = 0;
+    if(sceneView == null) {
+      // sceneView takes a little time to initialize
+      new Handler().postDelayed(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            face_start(callbackContext, attempt + 1);
+          } catch(JSONException e) { 
+            callbackContext.error("json error");
+          }
+        }
+      }, 500);      
       return true;
     }
     try {
       // sceneView.resume();
       Scene scene = sceneView.getScene();
-
       scene.addOnUpdateListener(
         (FrameTime frameTime) -> {
-          Collection<AugmentedFace> faceList =
-              sceneView.getSession().getAllTrackables(AugmentedFace.class);
+          Collection<AugmentedFace> faceList = sceneView.getSession().getAllTrackables(AugmentedFace.class);
 
           boolean lwink = false, rwink = false, lbrow = false, rbrow = false;
           boolean mouth = false, pucker = false, lsmirk = false, rsmirk = false;
           double left_lid = -1, right_lid = -1, left_brow = -1, right_brow = -1;
           double lips = -1, left_corner = -1, right_corner = -1, corners = -1;
+          double lid_diff = 0, corner_diff = 0;
           String action = "none";
           // Make new AugmentedFaceNodes for any new faces.
           for (AugmentedFace face : faceList) {
@@ -197,40 +226,41 @@ public class CoughDropFace extends CordovaPlugin  {
               // https://github.com/ManuelTS/augmentedFaceMeshIndices
               FloatBuffer vertices = face.getMeshVertices();
               // Calibrate - distance from 5 (top) to 4, nose height
-              double nose_height = vert_distance(vertices, 5, 4);
+              double nose_height = vertex_distance(vertices, 5, 4);
               if(nose_height > 0) {
                 // // Left wink - distance from 159 (top) to 145 should approach 0
-                left_lid = vert_distance(vertices, 159, 145) / nose_height;
+                left_lid = vertex_distance(vertices, 159, 145) / nose_height;
                 lwink = check_state(left_lids, left_lid, -0.1);
                 // // Right wink - distance from 386 (top) to 374 should approach 0
-                right_lid = vert_distance(vertices, 386, 374) / nose_height;
+                right_lid = vertex_distance(vertices, 386, 374) / nose_height;
                 rwink = check_state(right_lids, right_lid, -0.1);
-                double lid_diff = Math.abs(left_lid - right_lid);
-                if((lwink || rwink) && lid_diff > 0.03) { action = "wink"; }
+                lid_diff = check_diff(right_lids, right_lid, left_lids, left_lid);
+                if((lwink || rwink) && lid_diff > 0.025) { action = "wink"; }
                 // // Left eyebrow - distance from 223 (top) to 159 should increase
-                left_brow = vert_distance(vertices, 223, 159) / nose_height;
+                left_brow = vertex_distance(vertices, 223, 159) / nose_height;
                 lbrow = check_state(left_brows, left_brow, 0.7);
                 // // Right eyebrow - distance from 443 (top) to 386 should increase
-                right_brow = vert_distance(vertices, 443, 386) / nose_height;
-                rbrow = check_state(right_brows, right_brow, 0.7);
+                right_brow = vertex_distance(vertices, 443, 386) / nose_height;
+                rbrow = check_state(right_brows, right_brow, 0.5);
                 if(lbrow && rbrow) { action = "eyebrows"; }
                 // // Open mouth - distance from 11 (top) to 16 should increase
-                lips = vert_distance(vertices, 11, 16) / nose_height;
+                lips = vertex_distance(vertices, 11, 16) / nose_height;
                 mouth = check_state(all_lips, lips, 20);
                 if(mouth) { action = "mouth"; }
                 // // Left smirk - distance from 206 (top) to 57 should decrease
-                left_corner = vert_distance(vertices, 223, 184) / nose_height;
-                lsmirk = check_state(left_corners, left_corner, -8);
+                left_corner = vertex_distance(vertices, 223, 184) / nose_height;
+                lsmirk = check_state(left_corners, left_corner, -6);
                 // // Right smirk - distance from 426 (top) to 287 should decrease
-                right_corner = vert_distance(vertices, 191, 415) / nose_height;
+                right_corner = vertex_distance(vertices, 443, 415) / nose_height;
                 rsmirk = check_state(right_corners, right_corner, -6);
-                if(lsmirk && rsmirk) {
+                corner_diff = check_diff(left_corners, left_corner, right_corners, right_corner);
+                if(lsmirk && rsmirk && corner_diff < 3) {
                   action = "smile";
                 } else if(lsmirk || rsmirk) {
                   action = "smirk";
                 }
                 // // Pucker - lips should part and distance from 78 to 308 should decrease
-                corners = vert_distance(vertices, 78, 308) / nose_height;
+                corners = vertex_distance(vertices, 78, 308) / nose_height;
                 pucker = check_state(edge_corners, corners, -3);
                 if(pucker && !mouth && lips > 3) { action = "kiss"; }
               }
@@ -269,6 +299,9 @@ public class CoughDropFace extends CordovaPlugin  {
               head_tally = 0;
               try {
                 JSONObject head = new JSONObject();
+                head.put("l", left_lid);
+                head.put("r", right_lid);
+                head.put("d", lid_diff);
                 head.put("action", "head");
                 if(action_count > 3) {
                   head.put("action", action);
@@ -281,8 +314,8 @@ public class CoughDropFace extends CordovaPlugin  {
                   right_corners.clear();
                   edge_corners.clear();
                 }
-                head.put("headX", horizscale);
-                head.put("headY", vertscale);
+                head.put("head_tilt_x", horizscale);
+                head.put("head_tilt_y", vertscale);
 
                 PluginResult pr = new PluginResult(PluginResult.Status.OK, head);
                 pr.setKeepCallback(true);
@@ -292,6 +325,7 @@ public class CoughDropFace extends CordovaPlugin  {
           }
         }
       );
+      result.put("action", "ready");
       result.put("listening", true);
     } catch(Exception e) {
       result.put("error", true);
@@ -303,6 +337,29 @@ public class CoughDropFace extends CordovaPlugin  {
     pr.setKeepCallback(true);
     headCallback.sendPluginResult(pr);
 
+    return true;
+  }
+
+  // Display Metrics example, https://github.com/groupe-sii/cordova-plugin-device-display-metrics
+  private boolean face_stop(CallbackContext callbackContext) throws JSONException {
+    JSONObject result = new JSONObject();
+    
+    ((MainActivity) cordova.getActivity()).arPause();
+
+    if(headCallback != null) {
+      head_tally = 0;
+      same_head_tally = 0;
+      last_action = "none";
+      last_bank = -1;
+      last_attitude = -1;
+      JSONObject finish = new JSONObject();
+      finish.put("action", "end");
+      headCallback.success(finish);
+      headCallback = null;
+    }    
+
+    result.put("stopped", true);
+    callbackContext.success(result);
     return true;
   }
 }
