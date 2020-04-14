@@ -33,10 +33,6 @@
       target-dir="src/com/mycoughdrop/coughdrop" 
       />
     <source-file
-      src="src/android/MainActivity.java" 
-      target-dir="src/com/mycoughdrop/coughdrop" 
-      />
-    <source-file
       src="src/android/CordovaFragment.java" 
       target-dir="src/com/mycoughdrop/coughdrop" 
       />
