@@ -24,7 +24,6 @@ package com.mycoughdrop.coughdrop;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import com.google.ar.sceneform.ArSceneView;
 
 public class MainActivity extends FragmentActivity
 {
@@ -56,9 +55,8 @@ public class MainActivity extends FragmentActivity
             ft2.commit();
             arPaused = false;
         } else if(arPaused) {
-            ArSceneView sceneView = arFragment.getArSceneView();
             try {
-                sceneView.resume();
+                arFragment.getArSceneView().resume();
                 arPaused = false;
             } catch(Exception e) { }
         }
@@ -68,8 +66,7 @@ public class MainActivity extends FragmentActivity
     public void arPause()
     {
         if(arFragment != null && !arPaused) {
-            ArSceneView sceneView = arFragment.getArSceneView();
-            sceneView.pause();
+            arFragment.getArSceneView().pause();
             arPaused = true;
         }
     }

@@ -3,11 +3,11 @@ import ARKit
 
 @available(iOS 11.0, *)
 @objc(CoughDropFace) class CoughDropFace : CDVPlugin {
-  var triggerCallbackId:String="";
+  var triggerCallbackId:String = "";
+  var triggerSet:Bool = false;
   let session = ARSession();
   var arViewController: CoughDropFaceController!
   @IBOutlet weak var sceneView: SCNView!
-
 
   @objc(echo:)
   func echo(command: CDVInvokedUrlCommand) {
@@ -71,17 +71,28 @@ import ARKit
     @objc(listen:)
     func listen(command: CDVInvokedUrlCommand) {
         NSLog("FACE SETUP")
+        if(!triggerSet) { triggerCallbackId = ""; }
         if(!already_listening) {
             already_listening = true;
             let storyboard = UIStoryboard(name: "CoughDropFace",
                                           bundle: nil)
             guard let arViewController = storyboard.instantiateViewController(withIdentifier: "CoughDropFaceController") as? CoughDropFaceController else {
-                fatalError("CoughDropFaceController is not set in storyboard")
+                // TODO: 
+                let res = ["error":true, "message": "CoughDropFaceController is not set in storyboard"] as [AnyHashable:Any]
+                let pluginResult = CDVPluginResult(
+                    status: CDVCommandStatus_OK,
+                    messageAs: res
+                )
+                self.commandDelegate!.send(
+                    pluginResult,
+                    callbackId: command.callbackId
+                );
+                return;
             }
             self.arViewController = arViewController
             func action(_ data:GazeData) -> Bool {
-              if(triggerCallbackId != nil && triggerCallbackId != "" && data.action != "none") {
-                let res = ["action":data.action, "gaze_x":data.gazeX, "gaze_y":data.gazeY, "head_tilt_x":data.headX, "head_tilt_y":data.headY, "eyes": (data.action == "gaze")] as [AnyHashable:Any]
+              if(triggerSet && data.action != "none") {
+                  let res = ["action":data.action, "gaze_x":data.gazeX, "gaze_y":data.gazeY, "head_tilt_x":data.headX, "head_tilt_y":data.headY, "eyes": (data.action == "gaze")] as [AnyHashable:Any]
                   
                   let pluginResult = CDVPluginResult(
                     status: CDVCommandStatus_OK,
@@ -104,8 +115,10 @@ import ARKit
 
         }
         var hashable:[AnyHashable:Any] = [:];
-        if(command.arguments?[0] != nil) {
-            hashable = command.arguments?[0] as! [AnyHashable:Any];
+        if(command.arguments?.count ?? 0 > 0) {
+            if(command.arguments?[0] != nil) {
+                hashable = command.arguments?[0] as! [AnyHashable:Any];
+            }
         }
         self.arViewController.gaze_enabled = (hashable["gaze"] as! Bool) || false;
         self.arViewController.head_enabled = (hashable["head"] as! Bool) || false;
@@ -114,10 +127,11 @@ import ARKit
         if(hashable["layout"] != nil) {
             self.arViewController.layout_fallback = (hashable["layout"] as! String);
         }
-        NSLog("LAYOUT: \(hashable["layout"]) \(self.arViewController.layout_fallback)")
+        NSLog("LAYOUT: \(hashable["layout"] ?? "n/a") \(self.arViewController.layout_fallback)")
         // TODO: support options for left-or-right-eye-only
         
-        if(triggerCallbackId != nil && triggerCallbackId != "") {
+        NSLog("Trigger Check")
+        if(triggerSet) {
             let res = ["action":"end"] as [AnyHashable:Any]
             let pluginResult = CDVPluginResult(
               status: CDVCommandStatus_OK,
@@ -130,6 +144,8 @@ import ARKit
             )
         }
         triggerCallbackId = command.callbackId;
+        triggerSet = true;
+        NSLog("Trigger Set \(triggerCallbackId)")
 
         let res = ["action":"ready"] as [AnyHashable:Any]
         let pluginResult = CDVPluginResult(
@@ -148,7 +164,8 @@ import ARKit
     func stop_listening(command: CDVInvokedUrlCommand) {
         NSLog("FACE TEARDOWN")
         
-        if(triggerCallbackId != nil && triggerCallbackId != "") {
+        if(!triggerSet) { triggerCallbackId = ""; }
+        if(triggerSet) {
             let res = ["action":"end"] as [AnyHashable:Any]
             let pluginResult = CDVPluginResult(
               status: CDVCommandStatus_OK,
@@ -161,6 +178,7 @@ import ARKit
             )
             triggerCallbackId = "";
         }
+        triggerSet = false;
 
         if(arViewController == nil) { return; }
         already_listening = false;

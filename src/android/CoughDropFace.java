@@ -4,14 +4,21 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
 import android.os.Handler;
+import android.view.Display;
+import android.view.WindowManager;
+import android.content.res.Configuration;
+import android.view.Surface;
 
+import java.util.EnumSet;
+import java.util.Collection;
+import java.nio.FloatBuffer;
+import java.util.LinkedList;
+import java.util.Queue;
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.AugmentedFace;
 import com.google.ar.core.Pose;
 import com.google.ar.core.exceptions.*;
-import java.util.EnumSet;
-import java.util.Collection;
 import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.Scene;
@@ -19,9 +26,11 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import com.google.ar.sceneform.ux.ArFragment;
-import java.nio.FloatBuffer;
-import java.util.LinkedList;
-import java.util.Queue;
+// try {
+//  Class.forName( "your.fqdn.class.name" );
+// } catch( ClassNotFoundException e ) {
+//  //my class isn't there!
+// }
 
 import com.mycoughdrop.coughdrop.R;
 
@@ -42,10 +51,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * Helper libraries used by CoughDrop mobile app
-**/
-
 public class CoughDropFace extends CordovaPlugin  {
   private static final String TAG = "CoughDropFace";
   private CallbackContext headCallback = null;
@@ -55,8 +60,19 @@ public class CoughDropFace extends CordovaPlugin  {
     if(action.equals("status")) {
       return face_status(callbackContext);
     } else if(action.equals("listen")) {
-      return face_start(callbackContext, 0);
-      // TODO: process arguments, only send head tracking/expressions if specified
+      boolean head_tracking = false;
+      boolean head_pointing = false;
+      boolean eyes = false;
+
+      if(args.length() > 0) {
+        JSONObject opts = args.getJSONObject(0);
+        if(opts != null) {
+          head_tracking = opts.getBoolean("head");
+          head_pointing = opts.getBoolean("gaze");
+          eyes = opts.getBoolean("eyes");
+        }
+      }
+      return face_start(callbackContext, head_tracking, head_pointing, 0);
     } else if(action.equals("stop_listening")) {
       return face_stop(callbackContext);
     }
@@ -75,8 +91,24 @@ public class CoughDropFace extends CordovaPlugin  {
       result.put("head", true);
       result.put("expressions", true);
     }
-    DisplayMetrics metrics = this.cordova.getActivity().getApplicationContext().getResources().getDisplayMetrics();
+    Context context = this.cordova.getActivity().getApplicationContext();
+    DisplayMetrics metrics = context.getResources().getDisplayMetrics();
     result.put("ppi", metrics.densityDpi);
+
+    try {
+      Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+      int rotation = display.getRotation();
+      int orientation = context.getResources().getConfiguration().orientation;
+      String default_orientation = "unknown";
+
+      if(rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
+        default_orientation = orientation == Configuration.ORIENTATION_LANDSCAPE ? "horizontal" : "vertical";
+      } else if(rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
+        default_orientation = orientation == Configuration.ORIENTATION_LANDSCAPE ? "vertical" : "horizontal";
+      }
+      result.put("default_orientation", default_orientation);
+    } catch(Exception e) { }
+
     callbackContext.success(result);
     return true;
   }
@@ -161,6 +193,7 @@ public class CoughDropFace extends CordovaPlugin  {
   }
 
   private double heading = 0, bank = 0, attitude = 0;
+  private float meters_to_inches = (float) 39.3701;
   private double start_bank = -1, start_attitude = -1;
   private double last_bank = -1, last_attitude = -1;
   private Queue<Double> left_lids = new LinkedList<>();
@@ -174,7 +207,7 @@ public class CoughDropFace extends CordovaPlugin  {
   private int head_tally = 0, same_head_tally = 0;
   private String last_action = "none";
   private int action_count = 0;
-  private boolean face_start(CallbackContext callbackContext, int attempt) throws JSONException {
+  private boolean face_start(CallbackContext callbackContext, boolean head_tilt, boolean head_point, int attempt) throws JSONException {
     JSONObject result = new JSONObject();
 
     ArFragment currentFragment = ((MainActivity) cordova.getActivity()).assertArFragment();
@@ -194,7 +227,7 @@ public class CoughDropFace extends CordovaPlugin  {
         @Override
         public void run() {
           try {
-            face_start(callbackContext, attempt + 1);
+            face_start(callbackContext, head_tilt, head_point, attempt + 1);
           } catch(JSONException e) { 
             callbackContext.error("json error");
           }
@@ -205,6 +238,7 @@ public class CoughDropFace extends CordovaPlugin  {
     try {
       // sceneView.resume();
       Scene scene = sceneView.getScene();
+      Context context = this.cordova.getActivity().getApplicationContext();
       scene.addOnUpdateListener(
         (FrameTime frameTime) -> {
           Collection<AugmentedFace> faceList = sceneView.getSession().getAllTrackables(AugmentedFace.class);
@@ -214,6 +248,9 @@ public class CoughDropFace extends CordovaPlugin  {
           double left_lid = -1, right_lid = -1, left_brow = -1, right_brow = -1;
           double lips = -1, left_corner = -1, right_corner = -1, corners = -1;
           double lid_diff = 0, corner_diff = 0;
+          float xin = 0, yin = 0;
+          float[] zplane = new float[3];
+          zplane[0] = -1; zplane[1] = -1; zplane[2] = -1;
           String action = "none";
           // Make new AugmentedFaceNodes for any new faces.
           for (AugmentedFace face : faceList) {
@@ -222,6 +259,41 @@ public class CoughDropFace extends CordovaPlugin  {
               heading = euler[0];
               bank = euler[1];
               attitude = euler[2];
+
+              Pose pose = face.getCenterPose();
+              float[] matr = new float[16];
+              pose.toMatrix(matr, 0);
+              float zdist = -1 * matr[14] / matr[10];
+              float[] trans = new float[3];
+              trans[0] = 0;
+              trans[1] = 0;
+              trans[2] = zdist;
+              zplane = pose.transformPoint(trans);
+              xin = -1 * zplane[0] * meters_to_inches;
+              yin = -1 * zplane[1] * meters_to_inches;
+              try {
+                Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+                int rotation = display.getRotation();
+                int orientation = context.getResources().getConfiguration().orientation;
+
+                // TODO: need to test this for tablets
+                if(rotation == Surface.ROTATION_0) {
+                } else if(rotation == Surface.ROTATION_90) {
+                  float ref = xin;
+                  xin = yin;
+                  yin = -1 * ref;
+                } else if(rotation == Surface.ROTATION_180) {
+                  xin = xin;
+                  yin = -1 * yin;
+                } else {
+                  float ref = xin;
+                  xin = -1 * yin;
+                  yin = ref;
+                }
+              } catch(Exception e) { 
+                callbackContext.error(e.toString());
+                return;
+              }
 
               // https://github.com/ManuelTS/augmentedFaceMeshIndices
               FloatBuffer vertices = face.getMeshVertices();
@@ -295,15 +367,14 @@ public class CoughDropFace extends CordovaPlugin  {
               action_count = 0;
             }
             last_action = action;
-            if(head_tally >= 5 && same_head_tally < 20) {
+            if(head_tally >= 5 && (same_head_tally < 20 || head_point)) {
               head_tally = 0;
               try {
                 JSONObject head = new JSONObject();
-                head.put("l", left_lid);
-                head.put("r", right_lid);
-                head.put("d", lid_diff);
+                boolean send = false;
                 head.put("action", "head");
-                if(action_count > 3) {
+                if(action_count >= 3) {
+                  send = true;
                   head.put("action", action);
                   left_lids.clear();
                   right_lids.clear();
@@ -313,13 +384,22 @@ public class CoughDropFace extends CordovaPlugin  {
                   left_corners.clear();
                   right_corners.clear();
                   edge_corners.clear();
+                } else if(head_point) {
+                  send = true;
+                  head.put("action", "head_point");
+                  head.put("gaze_x", xin);
+                  head.put("gaze_y", yin);
+                } else if(head_tilt) {
+                  send = true;
                 }
                 head.put("head_tilt_x", horizscale);
                 head.put("head_tilt_y", vertscale);
 
-                PluginResult pr = new PluginResult(PluginResult.Status.OK, head);
-                pr.setKeepCallback(true);
-                headCallback.sendPluginResult(pr);
+                if(send) {
+                  PluginResult pr = new PluginResult(PluginResult.Status.OK, head);
+                  pr.setKeepCallback(true);
+                  headCallback.sendPluginResult(pr);
+                }
               } catch(JSONException e) { }
             }
           }

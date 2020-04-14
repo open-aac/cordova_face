@@ -2,7 +2,7 @@
 <plugin
   xmlns="http://apache.org/cordova/ns/plugins/1.0"
   xmlns:android="http://schemas.android.com/apk/res/android"
-  id="com.mycoughdrop.coughdrop.misc"
+  id="com.mycoughdrop.coughdrop.CoughDropFace"
   version="0.0.1"
   >
 
@@ -29,7 +29,11 @@
       </feature>
     </config-file>
     <source-file
-      src="src/android/CoughDropMisc.java" 
+      src="src/android/CoughDropFace.java" 
+      target-dir="src/com/mycoughdrop/coughdrop" 
+      />
+    <source-file
+      src="src/android/MainActivity.java" 
       target-dir="src/com/mycoughdrop/coughdrop" 
       />
     <source-file
