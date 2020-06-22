@@ -13,7 +13,7 @@ few products in the assistic technology space for us not
 to share what we learn!
 
 # Mobile Face/Head Tracking with Cordova Support
-Face/Head Tracking for Cordova. Using ARKit and ARCore, we
+Face/Head Tracking for Android and iOS Cordova. Using ARKit (iOS) and ARCore (Android), we
 can leverage device hardware to add support for tracking
 head position, facial expressions, and possibly eye gaze
 location.
