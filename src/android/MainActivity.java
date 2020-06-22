@@ -17,7 +17,7 @@
        under the License.
  */
 
-package com.mycoughdrop.coughdrop;
+package org.openaac.cordova_face;
 
 /** extends CordovaActivity */
 
@@ -56,7 +56,7 @@ public class MainActivity extends FragmentActivity
             arPaused = false;
         } else if(arPaused) {
             try {
-                arFragment.getArSceneView().resume();
+                arFragment.resumeAR();
                 arPaused = false;
             } catch(Exception e) { }
         }
@@ -66,7 +66,7 @@ public class MainActivity extends FragmentActivity
     public void arPause()
     {
         if(arFragment != null && !arPaused) {
-            arFragment.getArSceneView().pause();
+            arFragment.pauseAR();
             arPaused = true;
         }
     }
@@ -148,7 +148,7 @@ public class MainActivity extends FragmentActivity
 //        under the License.
 //  */
 
-// package com.mycoughdrop.coughdrop;
+// package org.openaac.cordova_face;
 
 // import android.os.Bundle;
 // import org.apache.cordova.*;

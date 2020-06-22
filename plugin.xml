@@ -2,11 +2,11 @@
 <plugin
   xmlns="http://apache.org/cordova/ns/plugins/1.0"
   xmlns:android="http://schemas.android.com/apk/res/android"
-  id="com.mycoughdrop.coughdrop.CoughDropFace"
+  id="org.openaac.cordova_face.face"
   version="0.0.1"
   >
 
-  <name>CoughDropFace</name>
+  <name>MobileFace</name>
 
   <description>
     Face/Head Tracking for Cordova Apps
@@ -21,35 +21,35 @@
   <!-- android -->
   <platform name="android">
     <config-file target="res/xml/config.xml" parent="/*">
-      <feature name="CoughDropFace">
+      <feature name="MobileFace">
           <param 
             name="android-package" 
-            value="com.mycoughdrop.coughdrop.CoughDropFace" 
+            value="org.openaac.cordova_face.face" 
             />
       </feature>
     </config-file>
     <source-file
-      src="src/android/CoughDropFace.java" 
-      target-dir="src/com/mycoughdrop/coughdrop" 
+      src="src/android/MobileFace.java" 
+      target-dir="src/org/openaac/cordova_face" 
       />
     <source-file
       src="src/android/CordovaFragment.java" 
-      target-dir="src/com/mycoughdrop/coughdrop" 
+      target-dir="src/org/openaac/cordova_face" 
       />
     <source-file
       src="src/android/FaceArFragment.java" 
-      target-dir="src/com/mycoughdrop/coughdrop" 
+      target-dir="src/org/openaac/cordova_faces" 
       />
    </platform>
    
   <platform name="ios">
-    <source-file src="src/ios/CoughDropFace.swift" />
-    <source-file src="src/ios/CoughDropFaceController.swift" />
-    <source-file src="src/ios/CoughDropFace.storyboard" />
+    <source-file src="src/ios/MobileFace.swift" />
+    <source-file src="src/ios/MobilFaceController.swift" />
+    <source-file src="src/ios/MobileeFace.storyboard" />
 
     <config-file target="config.xml" parent="/*">
-      <feature name="CoughDropFace">
-        <param name="ios-package" value="CoughDropFace"/>
+      <feature name="MobileFace">
+        <param name="ios-package" value="MobileFace"/>
       </feature>
     </config-file>
   </platform>

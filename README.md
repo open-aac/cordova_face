@@ -13,7 +13,7 @@ other uses as well, but that is our focus.
 
 ## Installation
 ```
-cordova plugin add https://github.com/CoughDrop/cordova_face
+cordova plugin add https://github.com/open-aac/cordova_face
 ```
 
 Look at src/android/MainActivity for an example replacement
@@ -45,7 +45,7 @@ cordova.exec(function(res) {
   }
 }, function(err) { 
   console.error('Exec Error', err); 
-}, 'CoughDropFace', 'status', []);
+}, 'MobileFace', 'status', []);
 ```
 
 ### Listen for Updates
@@ -70,7 +70,7 @@ cordova.exec(function(res) {
   }
 }, function(err) { 
   console.error('ERROR LISTENING', err); 
-}, 'CoughDropFace', 'listen', [{gaze: true, eyes: true, head: false, layout: layout}]);
+}, 'MobileFace', 'listen', [{gaze: true, eyes: true, head: false, layout: layout}]);
 ```
 
 Note that for head-pointing and gaze tracking, screen location
@@ -84,13 +84,14 @@ cordova.exec(function(res) {
   console.log("STOPPED", res);
 }, function(err) { 
   console.error('ERROR STOPPING', err); 
-}, 'CoughDropFace', 'stop_listening', []);
+}, 'MobileFace', 'stop_listening', []);
 ```
 
 ## TODO
 - Add js interface
 - Implement https://github.com/ReallySmallSoftware/cordova-plugin-android-fragmentactivity/blob/master/scripts/android/afterPluginInstall.js, but include the original file in a comment so nothing is lost
 - Auto-convert distance in inches to screen location
+- Android doesn't actually stop tracking, hangs around forever (because it would crash when I tried to pause), this would be a great thing to fix :-D
 
 ## License
 MIT License

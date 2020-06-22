@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.mycoughdrop.coughdrop;
+package org.openaac.cordova_face;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.google.ar.core.Config;
 import com.google.ar.core.Config.AugmentedFaceMode;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.Session;
 import com.google.ar.sceneform.ux.ArFragment;
 import java.util.EnumSet;
@@ -58,4 +60,29 @@ public class FaceArFragment extends ArFragment {
 
     return frameLayout;
   }
+
+  public void pauseAR() {
+    if(this.getArSceneView() != null) {
+      // try {
+      //   this.getArSceneView().pause();
+      // } catch(Exception err) {
+      //   Log.d("ARCRASH", "PAUSE:" + err.toString());
+      // }
+    }
+    // this.onPause();
+  }
+
+  public void resumeAR() {
+    if(this.getArSceneView() != null) {
+      // try {
+      //   this.getArSceneView().resume();
+      // } catch(CameraNotAvailableException e) { }
+      // catch(Exception err) {
+      //   Log.d("ARCRASH", "RESUME:" + err.toString());
+
+      // }
+    }
+    // this.onResume();
+  }
+
 }

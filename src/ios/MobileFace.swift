@@ -2,11 +2,11 @@ import UIKit
 import ARKit
 
 @available(iOS 11.0, *)
-@objc(CoughDropFace) class CoughDropFace : CDVPlugin {
+@objc(MobileFace) class MobileFace : CDVPlugin {
   var triggerCallbackId:String = "";
   var triggerSet:Bool = false;
   let session = ARSession();
-  var arViewController: CoughDropFaceController!
+  var arViewController: MobileFaceController!
   @IBOutlet weak var sceneView: SCNView!
 
   @objc(echo:)
@@ -74,11 +74,11 @@ import ARKit
         if(!triggerSet) { triggerCallbackId = ""; }
         if(!already_listening) {
             already_listening = true;
-            let storyboard = UIStoryboard(name: "CoughDropFace",
+            let storyboard = UIStoryboard(name: "MobileFace",
                                           bundle: nil)
-            guard let arViewController = storyboard.instantiateViewController(withIdentifier: "CoughDropFaceController") as? CoughDropFaceController else {
+            guard let arViewController = storyboard.instantiateViewController(withIdentifier: "MobileFaceController") as? MobilesFaceController else {
                 // TODO: 
-                let res = ["error":true, "message": "CoughDropFaceController is not set in storyboard"] as [AnyHashable:Any]
+                let res = ["error":true, "message": "MobileFaceController is not set in storyboard"] as [AnyHashable:Any]
                 let pluginResult = CDVPluginResult(
                     status: CDVCommandStatus_OK,
                     messageAs: res

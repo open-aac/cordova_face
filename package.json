@@ -1,10 +1,10 @@
 {
-  "version": "0.0.1",
-  "name": "com.mycoughdrop.coughdrop.face",
-  "cordova_name": "CoughDropFace",
+  "version": "0.0.2",
+  "name": "org.openaac.cordova_face.face",
+  "cordova_name": "MobileFace",
   "description": "Face/Head Tracking for Cordova apps",
   "license": "MIT",
-  "repo": "https://github.com/coughdrop/coughdrop_cordova_face",
+  "repo": "https://github.com/open-aac/cordova_face",
   "keywords": [
     "cordova"
   ],

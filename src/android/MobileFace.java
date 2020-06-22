@@ -1,4 +1,4 @@
-package com.mycoughdrop.coughdrop;
+package org.openaac.cordova_face;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -32,7 +32,7 @@ import com.google.ar.sceneform.ux.ArFragment;
 //  //my class isn't there!
 // }
 
-import com.mycoughdrop.coughdrop.R;
+import org.openaac.cordova_face.R;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
@@ -51,8 +51,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class CoughDropFace extends CordovaPlugin  {
-  private static final String TAG = "CoughDropFace";
+public class MobileFace extends CordovaPlugin  {
+  private static final String TAG = "MobileFace";
   private CallbackContext headCallback = null;
   
   @Override
@@ -75,6 +75,12 @@ public class CoughDropFace extends CordovaPlugin  {
       return face_start(callbackContext, head_tracking, head_pointing, 0);
     } else if(action.equals("stop_listening")) {
       return face_stop(callbackContext);
+    } else if(action.equals("set_face")) {
+      start_bank = -1;
+      start_attitude = -1;
+      last_bank = -1;
+      last_attitude = -1;
+      return face_status(callbackContext);
     }
     return false;
   }
@@ -207,7 +213,11 @@ public class CoughDropFace extends CordovaPlugin  {
   private int head_tally = 0, same_head_tally = 0;
   private String last_action = "none";
   private int action_count = 0;
-  private boolean face_start(CallbackContext callbackContext, boolean head_tilt, boolean head_point, int attempt) throws JSONException {
+  private boolean head_tilt = false;
+  private boolean head_point = false;
+  private boolean face_start(CallbackContext callbackContext, boolean set_head_tilt, boolean set_head_point, int attempt) throws JSONException {
+    head_point = set_head_point;
+    head_tilt = set_head_tilt;
     JSONObject result = new JSONObject();
 
     ArFragment currentFragment = ((MainActivity) cordova.getActivity()).assertArFragment();
@@ -318,7 +328,7 @@ public class CoughDropFace extends CordovaPlugin  {
                 // // Open mouth - distance from 11 (top) to 16 should increase
                 lips = vertex_distance(vertices, 11, 16) / nose_height;
                 mouth = check_state(all_lips, lips, 20);
-                if(mouth) { action = "mouth"; }
+                if(mouth) { action = "mouth_open"; }
                 // // Left smirk - distance from 206 (top) to 57 should decrease
                 left_corner = vertex_distance(vertices, 223, 184) / nose_height;
                 lsmirk = check_state(left_corners, left_corner, -6);

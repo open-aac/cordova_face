@@ -106,7 +106,7 @@ struct FaceExpressions {
 }
 
 @available(iOS 11.0, *)
-class CoughDropFaceController: UIViewController, ARSessionDelegate {
+class MobileFaceController: UIViewController, ARSessionDelegate {
     
     @IBOutlet weak var sceneView: SCNView!
     let session = ARSession()
@@ -331,41 +331,41 @@ class CoughDropFaceController: UIViewController, ARSessionDelegate {
         // For x: looking left of the camera = negative, looking right = positive
         // For y: looking above the camera = positive, looking down = negative
         if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeLeft ||  UIApplication.shared.statusBarOrientation == .landscapeLeft)) || self.layout_fallback == "landscape-primary") {
+            mode = "landleft";
             // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
             originx -= 140;
             originy -= 40;
             originy *= 3
-            mode = "landleft";
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portrait || UIApplication.shared.statusBarOrientation == .portrait)) || self.layout_fallback == "portrait-primary") {
             let ref = originx;
             originx = originy;
             originy = ref;
+            mode = "portrait"
             // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
             originx -= 30;
             originx *= 3;
             originy -= 150;
             originy *= 4;
-            mode = "portrait"
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeRight ||  UIApplication.shared.statusBarOrientation == .landscapeRight)) || self.layout_fallback == "landscape-secondary") {
             originy *= -1;
             originx *= -1;
+            mode = "landright";
             // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
             originx += 50;
             originx *= 1.7;
             originy -= 300;
             originy *= 4;
-            mode = "landright";
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portraitUpsideDown || UIApplication.shared.statusBarOrientation == .portraitUpsideDown)) || self.layout_fallback == "portrait-secondary") {
             let ref = originx;
             originx = originy;
             originy = ref;
             originx *= -1;
+            mode = "portrait-upside-down"
             // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
             originx -= 100
             originx *= 1.7
             originy -= 350
             originy *= 1.35
-            mode = "portrait-upside-down"
         }
         return (originx, originy);
     }
