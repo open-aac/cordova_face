@@ -1,4 +1,18 @@
-# Cordova Face/Head Tracking
+## Sharing In the Innovation
+We are releasing this code as open source in the hope
+that otherr groups will benefit from this source material.
+We want to raise the profile for all assistive technology
+rather than limiting innovations to only one software
+company at a time. Please use this code as-is or fork it
+to support your specific implementation needs.
+
+We ask that if you make improvements this this framework
+that you take the time to submit your changes back so 
+that others may benefit from them as well. There are too
+few products in the assistic technology space for us not
+to share what we learn!
+
+# Mobile Face/Head Tracking with Cordova Support
 Face/Head Tracking for Cordova. Using ARKit and ARCore, we
 can leverage device hardware to add support for tracking
 head position, facial expressions, and possibly eye gaze
@@ -88,10 +102,11 @@ cordova.exec(function(res) {
 ```
 
 ## TODO
+- Support for non-cordova projects
 - Add js interface
-- Implement https://github.com/ReallySmallSoftware/cordova-plugin-android-fragmentactivity/blob/master/scripts/android/afterPluginInstall.js, but include the original file in a comment so nothing is lost
+- Implement arcore-toggle as an install script (https://github.com/ReallySmallSoftware/cordova-plugin-android-fragmentactivity/blob/master/scripts/android/afterPluginInstall.js), but include the original file in a comment so nothing is lost
 - Auto-convert distance in inches to screen location
-- Android doesn't actually stop tracking, hangs around forever (because it would crash when I tried to pause), this would be a great thing to fix :-D
+- Android doesn't actually stop tracking, hangs around forever (because it would crash whenever I tried to pause), this would be a great thing to fix :-D
 
 ## License
 MIT License
