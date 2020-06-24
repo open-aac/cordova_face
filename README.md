@@ -25,6 +25,34 @@ to be used, for example, by accessibility apps for head
 tracking and custom screen activation. There could be
 other uses as well, but that is our focus.
 
+## Supported Features
+You can choose to track, head point position (where on the
+screen the head is pointing), head orientation (tilted up/down/left/right) or facial gestures (smile, wink, etc.). iOS
+Also has an optional head-plus-eye option that will do
+limited eye gaze control (it still requires head position
+changes, but less movement than just head pointing).
+
+### Gesture Limitations
+On iOS the following gestures are available:
+- "wink"
+- "smirk"
+- "smile"
+- "mouth_opeen"
+- "kiss"
+- "tongue"
+- "puff" (puff out cheeks)
+- "eyebrows"
+
+On Android the following gestures are available:
+- "wink"
+- "eyebrows" (raised eyebrows)
+- "mouth_open"
+- "smile"
+- "smirk" (smile and smirk may be too similar to differentiate)
+- "kiss" (lip pucker)
+- (Android doesn't track the tongue, unfortunately)
+
+
 ## Installation
 ```
 cordova plugin add https://github.com/open-aac/cordova_face
