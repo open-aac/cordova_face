@@ -1,18 +1,11 @@
-//
-//  ViewController.swift
-//  FaceOff
-//
-//  Created by David McGavern.
-//  Copyright © 2018 Made by Windmill. All rights reserved.
-//
 import UIKit
 import ARKit
 
 struct GazeData {
     var gazeX: Double
     var gazeY: Double
-    var headX: Int
-    var headY: Int
+    var headX: Double
+    var headY: Double
     var action: String
 }
 struct FaceExpressions {
@@ -70,7 +63,7 @@ struct FaceExpressions {
                 // Tongue is an iOS-12 feature
                 let tongue = shapes[.tongueOut]
                 if(tongue != nil) {
-                    self.tongueOut = smileLeft!.floatValue;
+                    self.tongueOut = tongue!.floatValue;
                 }
             }
             
@@ -89,12 +82,12 @@ struct FaceExpressions {
                 self.face_action = "smile";
             } else if(expr.dimpleLeft > 0.5 && expr.dimpleRight > 0.5) {
                 self.face_action = "smile";
+            } else if(expr.tongueOut > 0.02) {
+                self.face_action = "tongue";
             } else if(expr.jawOpen > 0.5) {
                 self.face_action = "mouth_open";
             } else if(expr.mouthPucker > 0.5) {
                 self.face_action = "kiss";
-            } else if(expr.tongueOut > 0.2) {
-                self.face_action = "tongue";
             } else if(expr.cheekPuff > 0.5) {
                 self.face_action = "puff";
             } else if(expr.browInnerUp > 0.4) {
@@ -161,13 +154,14 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
         }
     }
     
-    // 4 different levels of movement are supported, based on how far they turn
+    // 5 different levels of movement are supported, based on how far they turn
     let l4:Float = 0.1;
-    let l3:Float = 0.07;
-    let l2:Float = 0.06;
+    let l3:Float = 0.08;
+    let l2:Float = 0.07;
     let l1:Float = 0.05;
-    func tilt_scale(tilt: Float, factor: Float) -> Int {
-        var scale = 0;
+    let l0:Float = 0.035;
+    func tilt_scale(tilt: Float, factor: Float) -> Double {
+        var scale = 0.0;
         if(tilt > l4/factor) {
             scale = 5; // down
         } else if(tilt > l3/factor) {
@@ -176,6 +170,8 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
             scale = 2;
         } else if(tilt > l1/factor) {
             scale = 1;
+        } else if(tilt > l0/factor) {
+            scale = 0.5;
         } else if(tilt < -l4/factor) {
             scale = -5; // up
         } else if(tilt < -l3/factor) {
@@ -184,18 +180,26 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
             scale = -2;
         } else if(tilt < -l1/factor) {
             scale = -1;
+        } else if(tilt < -l0/factor) {
+            scale = -0.5;
         }
         return scale;
     }
     
-    func head_tilts(node: SCNNode) -> (Int, Int) {
+    func head_tilts(node: SCNNode) -> (Double, Double) {
         // Rotation is used for head-as-a-joystick
+        var vertfactor:Float = 1.5;
+        var horizfactor:Float = 1.0;
         if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeLeft ||  UIApplication.shared.statusBarOrientation == .landscapeLeft)) || self.layout_fallback == "landscape-primary") {
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portrait || UIApplication.shared.statusBarOrientation == .portrait)) || self.layout_fallback == "portrait-primary") {
             node.localRotate(by:SCNQuaternion.init(0.0, 0.0, 1.0, 0.785))
+            vertfactor = 1.0;
+            horizfactor = 1.5;
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeRight ||  UIApplication.shared.statusBarOrientation == .landscapeRight)) || self.layout_fallback == "landscape-secondary") {
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portraitUpsideDown || UIApplication.shared.statusBarOrientation == .portraitUpsideDown)) || self.layout_fallback == "portrait-secondary") {
             node.localRotate(by:SCNQuaternion.init(0.0, 0.0, 1.0, 0.785))
+            vertfactor = 1.0;
+            horizfactor = 1.5;
         }
         let rotation = node.worldOrientation
         if(startx == nil) { startx = rotation.x; }
@@ -203,10 +207,9 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
         if(startz == nil) { startz = rotation.z; }
         let vert = rotation.x - startx;
         let horiz = rotation.y - starty;
-        let vertfactor:Float = 1.5;
-        // TODO: make these cutoffs configurable as a sensitivity option
-        var vertscale = tilt_scale(tilt: vert, factor: vertfactor);
-        var horizscale = tilt_scale(tilt: horiz, factor: 1.0);
+        
+        var vertscale = tilt_scale(tilt: vert, factor: vertfactor * tilt_factor);
+        var horizscale = tilt_scale(tilt: horiz, factor: horizfactor * tilt_factor);
 
         if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeLeft ||  UIApplication.shared.statusBarOrientation == .landscapeLeft)) || self.layout_fallback == "landscape-primary") {
         } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portrait || UIApplication.shared.statusBarOrientation == .portrait)) || self.layout_fallback == "portrait-primary") {
@@ -268,6 +271,39 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
         return (leftEyeWorldLocation, rightEyeWorldLocation);
     }
     
+    func current_orientation() -> (String) {
+        var screen_orientation = "portrait-primary";
+        var can_check_io = false;
+        if #available(iOS 13.0, *) {
+            can_check_io = true;
+        }
+        if(UIDevice.current.orientation.isValidInterfaceOrientation || !can_check_io) {
+            if(UIDevice.current.orientation == .portrait) {
+                screen_orientation = "portrait-primary";
+            } else if(UIDevice.current.orientation == .portraitUpsideDown) {
+                screen_orientation = "portrait-secondary";
+            } else if(UIDevice.current.orientation == .landscapeLeft) {
+                screen_orientation = "landscape-secondary";
+            } else if(UIDevice.current.orientation == .landscapeRight) {
+                screen_orientation = "landscape-primary";
+            }
+        } else {
+            if #available(iOS 13.0, *) {
+                let io = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation
+                if(io == .portrait) {
+                    screen_orientation = "portrait-primary";
+                } else if(io == .portraitUpsideDown) {
+                    screen_orientation = "portrait-secondary";
+                } else if(io == .landscapeLeft) {
+                    screen_orientation = "landscape-secondary";
+                } else if(io == .landscapeRight) {
+                    screen_orientation = "landscape-primary";
+                }
+            };
+        }
+        return screen_orientation;
+    }
+    
     func project_to_z(left: SCNVector3, right: SCNVector3, eyes: Bool, head: SCNVector3) -> (Double, Double) {
         // World location of the current gaze for both eyes
         let headx = head.x*100;
@@ -280,10 +316,12 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
         var righty = right.y*100// - heady;
         var rightz = right.z*100// - headz;
         // head_factor is a sensitivity setting
+        // NOTE: we are ignoring tilt_factor here because we factor it in elsewhere.
+        // If you would like to use it, you will need to know the ppi for the device,
+        // shift based on the screen center, apply the tilt_factor and then shift back
         var head_factor:Float = 0.2; // absolute max of 0.8, 0.6 is manageable
         // head_factor of 0.0 is pretty sensitive imo, 0.2 is a fine default
         if(!eyes) {
-            // TODO: make this distance configurable as a sensitivity option
             // If using head as a pointer, we soften the angle slightly
             // to support a little broader range of motion.
             leftx -= (leftx - headx) * head_factor;
@@ -330,42 +368,45 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
         // Origin (x=0, y=0 should be the currrent location of the camera)
         // For x: looking left of the camera = negative, looking right = positive
         // For y: looking above the camera = positive, looking down = negative
-        if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeLeft ||  UIApplication.shared.statusBarOrientation == .landscapeLeft)) || self.layout_fallback == "landscape-primary") {
-            mode = "landleft";
-            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
+        
+        let screen_orientation = current_orientation();
+        
+        if((self.layout_fallback == "none" && screen_orientation == "landscape-primary") || self.layout_fallback == "landscape-primary") {
+            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13 & 10")
             originx -= 140;
             originy -= 40;
-            originy *= 3
-        } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portrait || UIApplication.shared.statusBarOrientation == .portrait)) || self.layout_fallback == "portrait-primary") {
+            originy *= -3
+            mode = "landleft";
+        } else if((self.layout_fallback == "none" && screen_orientation == "portrait-primary") || self.layout_fallback == "portrait-primary") {
             let ref = originx;
             originx = originy;
             originy = ref;
-            mode = "portrait"
-            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
+            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13 & 10")
             originx -= 30;
             originx *= 3;
             originy -= 150;
             originy *= 4;
-        } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .landscapeRight ||  UIApplication.shared.statusBarOrientation == .landscapeRight)) || self.layout_fallback == "landscape-secondary") {
+            mode = "portrait"
+        } else if((self.layout_fallback == "none" && screen_orientation == "landscape-secondary") || self.layout_fallback == "landscape-secondary") {
             originy *= -1;
             originx *= -1;
-            mode = "landright";
-            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
+            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13 & 10")
             originx += 50;
             originx *= 1.7;
             originy -= 300;
-            originy *= 4;
-        } else if((self.layout_fallback == "none" && (UIDevice.current.orientation == .portraitUpsideDown || UIApplication.shared.statusBarOrientation == .portraitUpsideDown)) || self.layout_fallback == "portrait-secondary") {
+            originy *= -4;
+            mode = "landright";
+        } else if((self.layout_fallback == "none" && screen_orientation == "portrait-secondary") || self.layout_fallback == "portrait-secondary") {
             let ref = originx;
             originx = originy;
             originy = ref;
             originx *= -1;
-            mode = "portrait-upside-down"
-            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13")
+            // Magic numbers for a better "default" (NOTE: only tested on iPad Pro 13 & 10")
             originx -= 100
             originx *= 1.7
             originy -= 350
-            originy *= 1.35
+            originy *= -1.35
+            mode = "portrait-upside-down"
         }
         return (originx, originy);
     }
@@ -380,9 +421,14 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
     var head_enabled = true;
     var left_eye_only = false;
     var right_eye_only = false;
+    var tilt_factor:Float! = 1.0;
     var follow_eyes = true;
     var layout_fallback = "none";
     var gaze_sum_x = 0.0, gaze_sum_y = 0.0;
+    var originx_history:[Double] = [];
+    var originy_history:[Double] = [];
+    var lastx:Double = -1;
+    var lasty:Double = -1;
     func processNewARFrame() {
         // Called each time ARKit updates our frame (aka we have new facial recognition data)
         if(self.currentFrame == nil || self.currentFaceAnchor == nil) {
@@ -448,25 +494,57 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
                 // NOTE: additional smoothing may prove useful, but is left for future work
                 let gaze_cutoff = 10;
                 if(gaze_enabled) {
-                    gaze_tally += 1
+                    gaze_tally += 1;
+                    while(originx_history.count > 30) {
+                        originx_history.remove(at: 0);
+                    }
+                    while(originy_history.count > 30) {
+                        originy_history.remove(at: 0);
+                    }
                     if(gaze_tally >= gaze_cutoff) {
                         var action = "gaze";
                         if(!eyes_used) {
                             action = "head_point";
                         }
-                        if(gaze_cutoff <= 20) {
+                        if(originx_history.count > 5) {
+                            let tallyx = originx_history.reduce(0, +);
+                            let tallyy = originy_history.reduce(0, +);
+                            originx = tallyx / Double(originx_history.count);
+                            originy = tallyy / Double(originy_history.count);
+                            
+                            if(lastx != -1 || lasty != -1)
+                            {
+                                // If the previous cluster center is nearer to the new
+                                // cluster center than a factor of the average distance of the
+                                // cells in the current cluster, then use the previous center
+                                // cluster plus slightly shifted
+                                let distancex = originx_history.map { abs($0 - originx) }.reduce(0, +) / Double(originx_history.count);
+                                let distancey = originy_history.map { abs($0 - originy) }.reduce(0, +) / Double(originy_history.count);
+                                let prior_distancex = abs(lastx - originx);
+                                let prior_distancey = abs(lasty - originy);
+                                let distance_factor = 1.05;
+                                if(prior_distancex < distancex * distance_factor && prior_distancey < distancey * distance_factor) {
+                                    originx = (originx + (lastx * 4.0)) / 5.0;
+                                    originy = (originy + (lasty * 4.0)) / 5.0;
+                                }
+                            }
+                        } else if(gaze_cutoff <= 20) {
                             // Collect events between messages for a smoothing average
                             originx = (originx + gaze_sum_x) / Double(gaze_tally + 1);
                             originy = (originy + gaze_sum_y) / Double(gaze_tally + 1);
                         }
+                        
+                        lastx = originx;
+                        lasty = originy;
                         self.faceAction[0](GazeData(gazeX:originx/100.0, gazeY:originy/100.0, headX: 0, headY: 0, action: action)); 
+//                        NSLog("\(self.layout_fallback)")
 //                        NSLog("\(mode) \(self.layout_fallback)\norig: \(originx),\(originy)\nhead: \(headx),\(heady),\(headz)\nturn: \(rotation.x),\(rotation.y),\(rotation.z)\nlook: \(eyeLocation.x*100),\(eyeLocation.y*100),\(eyeLocation.z*100)\nleft: \(leftx),\(lefty),\(leftz)\nrght:\(rightx),\(righty),\(rightz)\n")
                         gaze_tally = 0;
                         gaze_sum_x = 0.0;
                         gaze_sum_y = 0.0;
                     } else {
-                        gaze_sum_x += originx;
-                        gaze_sum_y += originy;
+                        originx_history.append(originx);
+                        originy_history.append(originy);
                     }
                 }
             }

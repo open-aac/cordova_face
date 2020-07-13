@@ -68,15 +68,26 @@ import ARKit
 
     var already_listening = false;
     
+    @objc(set_layout:)
+    func set_layout(command: CDVInvokedUrlCommand) {
+        var layout = "none";
+        if(command.arguments?[0] != nil) {
+            layout = command.arguments?[0] as! String;
+            NSLog("SET LAYOUT: \(layout)")
+            if(self.arViewController != nil) {
+                self.arViewController.layout_fallback = layout;
+            }
+        }
+    }
+
     @objc(listen:)
     func listen(command: CDVInvokedUrlCommand) {
         NSLog("FACE SETUP")
         if(!triggerSet) { triggerCallbackId = ""; }
         if(!already_listening) {
             already_listening = true;
-            let storyboard = UIStoryboard(name: "MobileFace",
-                                          bundle: nil)
-            guard let arViewController = storyboard.instantiateViewController(withIdentifier: "MobileFaceController") as? MobilesFaceController else {
+            let storyboard = UIStoryboard(name: "MobileFace", bundle: nil)
+            guard let arViewController = storyboard.instantiateViewController(withIdentifier: "MobileFaceController") as? MobileFaceController else {
                 // TODO: 
                 let res = ["error":true, "message": "MobileFaceController is not set in storyboard"] as [AnyHashable:Any]
                 let pluginResult = CDVPluginResult(
@@ -123,6 +134,11 @@ import ARKit
         self.arViewController.gaze_enabled = (hashable["gaze"] as! Bool) || false;
         self.arViewController.head_enabled = (hashable["head"] as! Bool) || false;
         self.arViewController.follow_eyes = (hashable["eyes"] as! Bool) || false;
+        NSLog("TILT: \(hashable["tilt"])")
+        if let factor = hashable["tilt_factor"] as? Float {
+            NSLog("TILT FACTOR: \(factor) \(hashable["tilt_factor"])")
+            self.arViewController.tilt_factor = factor;
+        }
         self.arViewController.layout_fallback = "none";
         if(hashable["layout"] != nil) {
             self.arViewController.layout_fallback = (hashable["layout"] as! String);
