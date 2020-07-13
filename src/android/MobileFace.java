@@ -70,6 +70,9 @@ public class MobileFace extends CordovaPlugin  {
           head_tracking = opts.getBoolean("head");
           head_pointing = opts.getBoolean("gaze");
           eyes = opts.getBoolean("eyes");
+          if(opts.has("tilt_factor") && !opts.isNull("tilt_factor")) {
+            tilt_factor = opts.getDouble("tilt_factor");
+          }
         }
       }
       return face_start(callbackContext, head_tracking, head_pointing, 0);
@@ -132,6 +135,7 @@ public class MobileFace extends CordovaPlugin  {
 
   private boolean check_state(Queue<Double> history, double current, double cutoff) {
     if(history.size() > 10) {
+      // remove last if too many
       history.poll();
     }
     Object[] past = history.toArray();
@@ -145,6 +149,7 @@ public class MobileFace extends CordovaPlugin  {
       }
     }
     if(!past_threshold) {
+      // add to the queue
       history.offer(current);
     }
     return past_threshold;
@@ -176,6 +181,7 @@ public class MobileFace extends CordovaPlugin  {
   }
 
   double l4 = 0.4, l3 = 0.3, l2 = 0.2, l1 = 0.15;
+  double tilt_factor = 1.0;
   private double tilt_scale(double tilt, double factor) {
     double scale = 0;
     if(tilt > l4/factor) {
@@ -210,6 +216,10 @@ public class MobileFace extends CordovaPlugin  {
   private Queue<Double> left_corners = new LinkedList<>();
   private Queue<Double> right_corners = new LinkedList<>();
   private Queue<Double> edge_corners = new LinkedList<>();
+  private Queue<Double> history_x = new LinkedList<>();
+  private Queue<Double> history_y = new LinkedList<>();
+  private float lastx = -1;
+  private float lasty = -1;
   private int head_tally = 0, same_head_tally = 0;
   private String last_action = "none";
   private int action_count = 0;
@@ -273,11 +283,16 @@ public class MobileFace extends CordovaPlugin  {
               Pose pose = face.getCenterPose();
               float[] matr = new float[16];
               pose.toMatrix(matr, 0);
+              // compute distance from the z plane
               float zdist = -1 * matr[14] / matr[10];
               float[] trans = new float[3];
               trans[0] = 0;
               trans[1] = 0;
               trans[2] = zdist;
+              // project onto the z plane
+              // NOTE: we are ignoring tilt_factor here because we factor it in elsewhere.
+              // If you would like to use it, you will need to know the ppi for the device,
+              // shift based on the screen center, apply the tilt_factor and then shift back
               zplane = pose.transformPoint(trans);
               xin = -1 * zplane[0] * meters_to_inches;
               yin = -1 * zplane[1] * meters_to_inches;
@@ -353,8 +368,8 @@ public class MobileFace extends CordovaPlugin  {
             start_attitude = attitude;
           }
           // negative bank == tilt up, negative == tilt right
-          double vertscale = tilt_scale(start_bank - bank, 1.5);
-          double horizscale = tilt_scale(attitude - start_attitude, 1.0);
+          double vertscale = tilt_scale(start_bank - bank, 1.5 * tilt_factor);
+          double horizscale = tilt_scale(attitude - start_attitude, 1.0 * tilt_factor);
 
           if(headCallback != null) {
             head_tally = head_tally + 1;
@@ -377,7 +392,43 @@ public class MobileFace extends CordovaPlugin  {
               action_count = 0;
             }
             last_action = action;
+            if(same_head_tally < 20 || head_point) {
+              history_x.offer(xin);
+              history_y.offer(yin);
+            }
             if(head_tally >= 5 && (same_head_tally < 20 || head_point)) {
+              // Find the average location for the recent history
+              while(history_x.size() > 20) {
+                history_x.poll();
+              }
+              while(history_y.size() > 20) {
+                history_y.poll();
+              }
+              double tallyx = 0;
+              double tallyy = 0;
+              for(Double val: history_x) { tallyx = tallyx + val; }
+              for(Double val: history_y) { tallyy = tallyy + val; }
+              xin = tallyx / history_x.size();
+              yin = tallyy / history_y.size();
+              if(head_point && (lastx != -1 || lasty != -1)) {
+                // If the previous cluster center is nearer to the new
+                // cluster center than a factor of the average distance of the
+                // cells in the current cluster, then use the previous center
+                // cluster plus slightly shifted
+                double distance_tallyx = 0;
+                double distance_tallyy = 0;
+                for(Double val: history_x) { distance_tallyx = distance_tallyx + Math.abs(val - xin); }
+                for(Double val: history_y) { distance_tallyy = distance_tallyy + Math.abs(val - yin); }
+                double prior_distancex = Math.abs(lastx - xin);
+                double prior_distancey = Math.abs(lasty - yin);
+                double distance_factor = 1.05;
+                if(prior_distancex < distancex * distance_factor && prior_distancey < distancey * distance_factor) {
+                    xin = (xin + (lastx * 4.0)) / 5.0;
+                    yin = (yin + (lasty * 4.0)) / 5.0;
+                }
+              }
+
+              // Send the appropriate data
               head_tally = 0;
               try {
                 JSONObject head = new JSONObject();
