@@ -1,6 +1,6 @@
 {
   "version": "0.0.2",
-  "name": "org.openaac.cordova_face.face",
+  "name": "org.openaac.cordova_face",
   "cordova_name": "MobileFace",
   "description": "Face/Head Tracking for Cordova apps",
   "license": "MIT",
