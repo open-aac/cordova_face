@@ -44,8 +44,8 @@
    
   <platform name="ios">
     <source-file src="src/ios/MobileFace.swift" />
-    <source-file src="src/ios/MobilFaceController.swift" />
-    <source-file src="src/ios/MobileeFace.storyboard" />
+    <source-file src="src/ios/MobileFaceController.swift" />
+    <source-file src="src/ios/MobileFace.storyboard" />
 
     <config-file target="config.xml" parent="/*">
       <feature name="MobileFace">
