@@ -1,8 +1,8 @@
 if ARGV[0] == 'enable'
   puts `cordova plugin add https://github.com/open-aac/cordova_face`
-  `cp plugins/com.mycoughdrop.coughdrop.CoughDropFace/src/android/MainActivity.java platforms/android/app/src/main/java/com/mycoughdrop/coughdrop/MainActivity.java`
+  `cp plugins/org.openaac.cordova_face/src/android/MainActivity.java platforms/android/app/src/main/java/com/mycoughdrop/coughdrop/MainActivity.java`
 elsif ARGV[0] == 'disable'
-  puts `cordova plugin remove com.mycoughdrop.coughdrop.CoughDropFace`
+  puts `cordova plugin remove org.openaac.cordova_face`
   `cp platforms/android/app/src/main/java/com/mycoughdrop/coughdrop/MainActivity.java.original platforms/android/app/src/main/java/com/mycoughdrop/coughdrop/MainActivity.java`
 end
 str = File.read(File.join('platforms', 'android', 'app', 'build.gradle'))

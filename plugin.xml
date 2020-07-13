@@ -24,7 +24,7 @@
       <feature name="MobileFace">
           <param 
             name="android-package" 
-            value="org.openaac.cordova_face" 
+            value="org.openaac.cordova_face.MobileFace" 
             />
       </feature>
     </config-file>
