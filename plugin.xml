@@ -29,6 +29,10 @@
       </feature>
     </config-file>
     <source-file
+      src="src/android/ArMainActivity.java" 
+      target-dir="src/org/openaac/cordova_face" 
+      />
+    <source-file
       src="src/android/MobileFace.java" 
       target-dir="src/org/openaac/cordova_face" 
       />

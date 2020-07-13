@@ -1,13 +1,14 @@
 
-package org.openaac.cordova_face;
+package com.mycoughdrop.coughdrop;
 
 /** extends CordovaActivity */
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import org.openaac.cordova_face.*;
 
-public class MainActivity extends FragmentActivity
+public class MainActivity extends FragmentActivity implements ArMainActivity
 {
     private static final String TAG = "MainActivity";
 

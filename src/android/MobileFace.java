@@ -31,8 +31,7 @@ import com.google.ar.sceneform.ux.ArFragment;
 // } catch( ClassNotFoundException e ) {
 //  //my class isn't there!
 // }
-
-import org.openaac.cordova_face.R;
+import com.mycoughdrop.coughdrop.R;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
@@ -51,7 +50,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MobileFace extends CordovaPlugin  {
+public class MobileFace extends CordovaPlugin {
   private static final String TAG = "MobileFace";
   private CallbackContext headCallback = null;
   
@@ -230,7 +229,7 @@ public class MobileFace extends CordovaPlugin  {
     head_tilt = set_head_tilt;
     JSONObject result = new JSONObject();
 
-    ArFragment currentFragment = ((MainActivity) cordova.getActivity()).assertArFragment();
+    ArFragment currentFragment = ((ArMainActivity) cordova.getActivity()).assertArFragment();
     ArSceneView sceneView = currentFragment.getArSceneView();
     start_bank = -1;
     start_attitude = -1;
@@ -393,8 +392,8 @@ public class MobileFace extends CordovaPlugin  {
             }
             last_action = action;
             if(same_head_tally < 20 || head_point) {
-              history_x.offer(xin);
-              history_y.offer(yin);
+              history_x.offer((double) xin);
+              history_y.offer((double) yin);
             }
             if(head_tally >= 5 && (same_head_tally < 20 || head_point)) {
               // Find the average location for the recent history
@@ -408,8 +407,8 @@ public class MobileFace extends CordovaPlugin  {
               double tallyy = 0;
               for(Double val: history_x) { tallyx = tallyx + val; }
               for(Double val: history_y) { tallyy = tallyy + val; }
-              xin = tallyx / history_x.size();
-              yin = tallyy / history_y.size();
+              xin = (float) tallyx / history_x.size();
+              yin = (float) tallyy / history_y.size();
               if(head_point && (lastx != -1 || lasty != -1)) {
                 // If the previous cluster center is nearer to the new
                 // cluster center than a factor of the average distance of the
@@ -419,12 +418,14 @@ public class MobileFace extends CordovaPlugin  {
                 double distance_tallyy = 0;
                 for(Double val: history_x) { distance_tallyx = distance_tallyx + Math.abs(val - xin); }
                 for(Double val: history_y) { distance_tallyy = distance_tallyy + Math.abs(val - yin); }
+                double distancex = distance_tallyx / history_x.size();
+                double distancey = distance_tallyy / history_y.size();
                 double prior_distancex = Math.abs(lastx - xin);
                 double prior_distancey = Math.abs(lasty - yin);
                 double distance_factor = 1.05;
                 if(prior_distancex < distancex * distance_factor && prior_distancey < distancey * distance_factor) {
-                    xin = (xin + (lastx * 4.0)) / 5.0;
-                    yin = (yin + (lasty * 4.0)) / 5.0;
+                    xin = (float) ((xin + (lastx * 4.0)) / 5.0);
+                    yin = (float) ((yin + (lasty * 4.0)) / 5.0);
                 }
               }
 
@@ -485,7 +486,7 @@ public class MobileFace extends CordovaPlugin  {
   private boolean face_stop(CallbackContext callbackContext) throws JSONException {
     JSONObject result = new JSONObject();
     
-    ((MainActivity) cordova.getActivity()).arPause();
+    ((ArMainActivity) cordova.getActivity()).arPause();
 
     if(headCallback != null) {
       head_tally = 0;
