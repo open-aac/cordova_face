@@ -24,7 +24,7 @@
       <feature name="MobileFace">
           <param 
             name="android-package" 
-            value="org.openaac.cordova_face.face" 
+            value="org.openaac.cordova_face" 
             />
       </feature>
     </config-file>
@@ -38,7 +38,7 @@
       />
     <source-file
       src="src/android/FaceArFragment.java" 
-      target-dir="src/org/openaac/cordova_faces" 
+      target-dir="src/org/openaac/cordova_face" 
       />
    </platform>
    
