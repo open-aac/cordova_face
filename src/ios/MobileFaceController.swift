@@ -518,8 +518,10 @@ class MobileFaceController: UIViewController, ARSessionDelegate {
                                 // cluster center than a factor of the average distance of the
                                 // cells in the current cluster, then use the previous center
                                 // cluster plus slightly shifted
-                                let distancex = originx_history.map { abs($0 - originx) }.reduce(0, +) / Double(originx_history.count);
-                                let distancey = originy_history.map { abs($0 - originy) }.reduce(0, +) / Double(originy_history.count);
+                                let origin_mapx = originx_history.map { abs($0 - originx) };
+                                let distancex = origin_mapx.reduce(0, +) / Double(originx_history.count);
+                                let origin_mapy = originy_history.map { abs($0 - originx) };
+                                let distancey = origin_mapy.reduce(0, +) / Double(originy_history.count);
                                 let prior_distancex = abs(lastx - originx);
                                 let prior_distancey = abs(lasty - originy);
                                 let distance_factor = 1.05;

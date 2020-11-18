@@ -1,4 +1,6 @@
 ## Sharing In the Innovation
+[![OpenAAC](https://www.openaac.org/images//OpenAAC-advocate-blue.svg)](https://www.openaac.org/advocates.html)
+
 We are releasing this code as open source in the hope
 that otherr groups will benefit from this source material.
 We want to raise the profile for all assistive technology
