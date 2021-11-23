@@ -309,7 +309,11 @@ public class CordovaFragment extends Fragment {
          }
 
          if (this.appView != null) {
-             appView.handleDestroy();
+             try {
+                appView.handleDestroy();
+             } catch(IllegalArgumentException e) {
+                 // Unexpected errors on Samsung devices for TTS
+             }
          }
      }
 
