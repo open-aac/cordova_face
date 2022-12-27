@@ -58,8 +58,15 @@ import ARKit
     func status(command: CDVInvokedUrlCommand) {
         let supported = ARFaceTrackingConfiguration.isSupported;
 
-        let res = ["supported":supported, "status":"ready"] as [AnyHashable:Any]
-        
+        var res = ["supported":supported, "status":"ready"] as [AnyHashable:Any]
+        #if canImport(irisbondApi)
+            if supported && UIDevice.current.userInterfaceIdiom == .pad {
+                if #available(iOS 15.0, *) {
+                    res["hardware_possible"] = true
+                }
+            }
+        #endif
+
         let pluginResult = CDVPluginResult(
           status: CDVCommandStatus_OK,
           messageAs: res
