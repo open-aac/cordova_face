@@ -1,10 +1,15 @@
 import UIKit
 import ARKit
+#if canImport(irisbondApi)
+    import irisbondApi
+#endif
 
 @available(iOS 11.0, *)
 @objc(MobileFace) class MobileFace : CDVPlugin {
   var triggerCallbackId:String = "";
   var triggerSet:Bool = false;
+  var hiruCallbackId:String = "";
+  var hiruSet:Bool = false;
   let session = ARSession();
   var arViewController: MobileFaceController!
   @IBOutlet weak var sceneView: SCNView!
@@ -222,4 +227,191 @@ import ARKit
             callbackId: command.callbackId
         )
     }
+
+#if canImport(irisbondApi)
+    @objc(hiru_start:)
+    func hiru_start(command: CDVInvokedUrlCommand) {
+        if #available(iOS 15.0, *) {
+            Task {
+                await IrisbondApi.setScreenSize(screenBounds: UIScreen.main.bounds)
+                let startResult = await IrisbondApi.start()
+                if(startResult==IBndStartResult.START_OK) {
+                    IrisbondApi.disableHID()
+                    let pluginResult = CDVPluginResult(
+                      status: CDVCommandStatus_OK,
+                      messageAs: "ready"
+                    )
+
+                    self.commandDelegate!.send(
+                      pluginResult,
+                      callbackId: command.callbackId
+                    )
+                } else {
+                    var err = "hiru error"
+                    switch startResult {
+                    case IBndStartResult.NO_CAMERA:
+                        // cHiru is not connected hoose what to do in this case break
+                        err = "not connected"
+                        break
+                    case IBndStartResult.LICENSE_NO_INTERNET:
+                        // Licence is not ok, should be activated HIRU app
+                        // choose what to do in this case
+                        err = "no license"
+                        break
+                    case IBndStartResult.INVALID_LICENSE:
+                        // Licence is not ok, should be activated HIRU app //choose what to do in this case
+                        err = "bad license"
+                        break
+                    case IBndStartResult.LICENSE_NO_RESULT:
+                        // Licence is not ok, should be activated HIRU app //choose what to do in this case
+                        err = "inactive license"
+                        break
+                    default:
+                        // choose what to do in this case
+                        break
+                    }
+                    let pluginResult = CDVPluginResult(
+                      status: CDVCommandStatus_ERROR,
+                      messageAs: err
+                    )
+
+                    self.commandDelegate!.send(
+                      pluginResult,
+                      callbackId: command.callbackId
+                    )
+                    
+                }
+            }
+        } else {
+            // Fallback on earlier versions
+            let pluginResult = CDVPluginResult(
+              status: CDVCommandStatus_ERROR,
+              messageAs: "Too old"
+            )
+
+            self.commandDelegate!.send(
+              pluginResult,
+              callbackId: command.callbackId
+            )
+        }
+    }
+
+    @objc(hiru_stop:)
+    func hiru_stop(command: CDVInvokedUrlCommand) {
+        // re-disable HID
+        if #available(iOS 15.0.0, *) {
+            IrisbondApi.enableHID()
+            IrisbondApi.unregisterEyeDataEvent(target: self.viewController)
+            
+            let pluginResult = CDVPluginResult(
+              status: CDVCommandStatus_OK,
+              messageAs: "stopped"
+            )
+
+            self.commandDelegate!.send(
+              pluginResult,
+              callbackId: command.callbackId
+            )
+        } else {
+            // Fallback on earlier versions
+            let pluginResult = CDVPluginResult(
+              status: CDVCommandStatus_ERROR,
+              messageAs: "Too old"
+            )
+
+            self.commandDelegate!.send(
+              pluginResult,
+              callbackId: command.callbackId
+            )
+        }
+    }
+
+    @objc(hiru_listen:)
+    func hiru_listen(command: CDVInvokedUrlCommand) {
+        if #available(iOS 15.0.0, *) {
+            let callbackId = command.callbackId;
+            IrisbondApi.onEyeDataEventOnMainThread(target:self.viewController) { result in
+                let data : IBndEyeData = result?.object as! IBndEyeData
+                let res = ["action":"hiru_gaze", "gaze_x":data.pointOfGazeX, "gaze_y":data.pointOfGazeY] as [AnyHashable:Any]
+
+                let pluginResult = CDVPluginResult(
+                  status: CDVCommandStatus_OK,
+                  messageAs: res
+                )
+                pluginResult?.setKeepCallbackAs(true)
+
+                self.commandDelegate!.send(
+                  pluginResult,
+                  callbackId: callbackId
+                )
+            }
+//            IrisbondApi.onEyeDataEventBackgroundThread(target:self.viewController) { result in
+//                let data : IBndEyeData = result?.object as! IBndEyeData
+//                let res = ["action":"hiru_gaze", "gaze_x":data.pointOfGazeX, "gaze_y":data.pointOfGazeY] as [AnyHashable:Any]
+//
+//                let pluginResult = CDVPluginResult(
+//                  status: CDVCommandStatus_OK,
+//                  messageAs: res
+//                )
+//                pluginResult?.setKeepCallbackAs(true)
+//
+//                self.commandDelegate!.send(
+//                  pluginResult,
+//                  callbackId: callbackId
+//                )
+//            }
+        } else {
+            // Fallback on earlier versions
+            let pluginResult = CDVPluginResult(
+              status: CDVCommandStatus_ERROR,
+              messageAs: "Too old"
+            )
+
+            self.commandDelegate!.send(
+              pluginResult,
+              callbackId: command.callbackId
+            )
+        }
+    }
+#else
+    @objc(hiru_start:)
+    func hiru_start(command: CDVInvokedUrlCommand) {
+        let pluginResult = CDVPluginResult(
+          status: CDVCommandStatus_ERROR,
+          messageAs: "Not available"
+        )
+
+        self.commandDelegate!.send(
+          pluginResult,
+          callbackId: command.callbackId
+        )
+    }
+    
+    @objc(hiru_stop:)
+    func hiru_stop(command: CDVInvokedUrlCommand) {
+        let pluginResult = CDVPluginResult(
+          status: CDVCommandStatus_ERROR,
+          messageAs: "Not available"
+        )
+
+        self.commandDelegate!.send(
+          pluginResult,
+          callbackId: command.callbackId
+        )
+    }
+
+    @objc(hiru_listen:)
+    func hiru_listen(command: CDVInvokedUrlCommand) {
+        let pluginResult = CDVPluginResult(
+          status: CDVCommandStatus_ERROR,
+          messageAs: "Too old"
+        )
+
+        self.commandDelegate!.send(
+          pluginResult,
+          callbackId: command.callbackId
+        )
+    }
+#endif
+
 }
